@@ -11,8 +11,8 @@ from contextlib import asynccontextmanager
 
 from . import models
 from . import schemas
-from database import engine, SessionLocal, get_db, Base
-from auth import get_password_hash, verify_password, create_access_token, decode_token
+from .database import engine, SessionLocal, get_db, Base
+from .auth import get_password_hash, verify_password, create_access_token, decode_token
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 BASE_DIR = Path(__file__).resolve().parent.parent
