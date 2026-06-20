@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-import models
-import schemas
+from . import models
+from . import schemas
 from database import engine, SessionLocal, get_db, Base
 from auth import get_password_hash, verify_password, create_access_token, decode_token
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
