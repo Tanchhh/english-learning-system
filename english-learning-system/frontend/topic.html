@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Урок - English Learning</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #lessonsContainer .card > h3 {
+            margin-bottom: 12px !important;
+        }
+
+        #lessonsContainer .card > div[style*="white-space"] {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        #lessonsContainer .card > div[style*="white-space"] > :first-child {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            display: block; /* Принудительно блочный элемент */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 onclick="window.location.href='/'" style="cursor: pointer; margin: 0;">
+                📚 English Learning
+            </h1>
+
+            <nav style="display: flex; align-items: center; gap: 25px;">
+                <a href="/" id="nav-topics" class="active">Темы</a>
+                <a href="/leaderboard" id="nav-leaderboard">🏆 Рейтинг</a>
+                <a href="/contacts" id="nav-contacts">Контакты</a>
+
+                <span style="width: 1px; height: 20px; background: var(--border-color);"></span>
+
+                <a href="/profile" id="nav-profile">Профиль</a>
+                <a href="/admin" id="nav-admin" style="display:none;">🔧 Админка</a>
+                <button id="logoutBtn" style="display:none;" class="btn btn-outline" onclick="logout()">Выйти</button>
+                <a href="/login" id="nav-login">Войти</a>
+            </nav>
+            >
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему"
+                    style="margin-left: 20px; font-size: 1.3rem;">🌙</button>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 30px; max-width: 800px;">
+
+        <a href="/" class="btn btn-outline" style="margin-bottom: 20px; text-decoration: none; display: inline-block;">
+            ← Вернуться к темам
+        </a>
+
+        <div id="topicContent">
+            <div class="card text-center">
+                <p style="color: var(--text-secondary);">Загрузка урока...</p>
+            </div>
+        </div>
+
+        <div class="card text-center mt-20" id="complete-section" style="display: none;">
+            <h3 style="margin-bottom: 15px;">Готовы завершить тему?</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Для успешного завершения все упражнения должны быть выполнены <b>правильно</b>.
+            </p>
+            <button class="btn btn-success" style="font-size: 1.1rem; padding: 10px 30px;" onclick="markTopicComplete()">
+                ✅ Завершить тему
+            </button>
+            <p id="completion-error" style="color: var(--error); margin-top: 10px; display: none; font-weight: 500;"></p>
+        </div>
+    </main>
+    
+    <script src="/static/script.js?v=3"></script>
+    <script>
+        const topicId = window.location.pathname.split('/').pop();
+
+        let exerciseStatus = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            checkAuthUI();
+
+            document.querySelectorAll('nav a').forEach(link => link.classList.remove('active'));
+            document.getElementById('nav-topics')?.classList.add('active');
+
+            await loadTopic(topicId);
+        });
+
+        async function loadTopic(id) {
+            try {
+                const res = await fetch(`/api/topics/${id}`);
+                if (!res.ok) throw new Error('Ошибка сети');
+                const topic = await res.json();
+
+                const container = document.getElementById('topicContent');
+
+                container.innerHTML = `
+                    <div class="card">
+                        <span class="badge badge-${(topic.level || 'A1').toLowerCase()}">${topic.level || 'A1'}</span>
+                        <h1 style="margin: 10px 0;">${topic.title}</h1>
+                        <p style="color: var(--text-secondary); line-height: 1.6;">${topic.description || ''}</p>
+                    </div>
+                    <div id="lessonsContainer"></div>
+                `;
+
+                const lessonsDiv = document.getElementById('lessonsContainer');
+
+                if (!topic.lessons || topic.lessons.length === 0) {
+                    lessonsDiv.innerHTML = '<div class="card text-center"><p>В этой теме пока нет уроков.</p></div>';
+                    return;
+                }
+
+                topic.lessons.forEach((lesson, idx) => {
+                    let lessonHtml = `
+                        <div class="card">
+                            <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; margin-bottom: 5px;">
+                                Урок ${idx + 1}: ${lesson.title}
+                            </h3>
+                            <div style="white-space: pre-wrap; line-height: 1.6; margin-top: 0;">${formatContent(lesson.content)}</div>
+                    `;
+
+                    if (lesson.exercises && lesson.exercises.length > 0) {
+                        lessonHtml += `<h4 style="margin: 25px 0 15px; color: var(--primary);">📝 Практика</h4>`;
+                        lesson.exercises.forEach(ex => {
+                            lessonHtml += renderExercise(ex);
+                        });
+                    }
+
+                    lessonHtml += `</div>`;
+                    lessonsDiv.innerHTML += lessonHtml;
+                });
+
+                if (localStorage.getItem('token')) {
+                    document.getElementById('complete-section').style.display = 'block';
+                }
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('topicContent').innerHTML = `
+                    <div class="card text-center">
+                        <p style="color: var(--error);">❌ Не удалось загрузить урок.</p>
+                        <a href="/" class="btn btn-outline" style="margin-top:10px; text-decoration:none;">На главную</a>
+                    </div>`;
+            }
+        }
+
+        function renderExercise(ex) {
+            const safeTask = (ex.task || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const safeAnswer = (ex.answer || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const isInteractive = ['fill_blank', 'translation'].includes(ex.exercise_type);
+
+            if (isInteractive) {
+                const taskWithInput = safeTask.replace(/___/g,
+                    `<input type="text" class="answer-input" id="input-${ex.id}" placeholder="ваш ответ" autocomplete="off">`
+                );
+
+                return `
+                <div class="exercise-item" id="ex-${ex.id}" data-answer="${safeAnswer}" data-explanation="${(ex.explanation || '').replace(/"/g, '&quot;')}">
+                    <div class="exercise-task">${taskWithInput}</div>
+                    <button class="btn btn-outline" style="font-size: 0.9rem; padding: 6px 12px; margin-top: 8px;" onclick="checkAnswer(${ex.id})">
+                        Проверить
+                    </button>
+                    <div class="feedback" id="feedback-${ex.id}" style="display: none;"></div>
+                </div>`;
+            } else {
+                return `
+                <div class="exercise-item">
+                    <div class="exercise-task">${safeTask}</div>
+                    <details style="margin-top: 10px; cursor: pointer; color: var(--primary);">
+                        <summary>Показать ответ</summary>
+                        <p style="margin-top: 10px; padding: 10px; background: rgba(99, 102, 241, 0.05); border-radius: 6px;">
+                            <b>Ответ:</b> ${safeAnswer}
+                        </p>
+                    </details>
+                </div>`;
+            }
+        }
+
+        async function checkAnswer(exerciseId) {
+            const exDiv = document.getElementById(`ex-${exerciseId}`);
+            const input = document.getElementById(`input-${exerciseId}`);
+            const feedback = document.getElementById(`feedback-${exerciseId}`);
+            const userAnswer = input.value.trim();
+
+            if (!userAnswer) {
+                feedback.className = 'feedback incorrect';
+                feedback.innerHTML = '⚠️ Введите ответ перед проверкой';
+                feedback.style.display = 'block';
+                return;
+            }
+
+            const correctAnswer = exDiv.dataset.answer.toLowerCase();
+            const userAnswerClean = userAnswer.toLowerCase();
+            const isCorrect = userAnswerClean === correctAnswer;
+
+            if (isCorrect) {
+                feedback.className = 'feedback correct';
+                feedback.innerHTML = '✅ Верно!';
+                input.style.borderColor = 'var(--success)';
+                input.disabled = true; // Блокируем поле после правильного ответа
+                exerciseStatus[exerciseId] = true; // Запоминаем успех
+            } else {
+                feedback.className = 'feedback incorrect';
+                const explanation = exDiv.dataset.explanation;
+                feedback.innerHTML = `❌ Неверно. Правильный ответ: <b>${exDiv.dataset.answer}</b>${explanation ? `<br><small>${explanation}</small>` : ''}`;
+                input.style.borderColor = 'var(--error)';
+                exerciseStatus[exerciseId] = false;
+            }
+            feedback.style.display = 'block';
+
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    await fetch(`/api/exercises/${exerciseId}/check?answer=${encodeURIComponent(userAnswer)}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } catch (e) {
+                    console.warn('Не удалось сохранить результат на сервере');
+                }
+            }
+        }
+
+        async function markTopicComplete() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Пожалуйста, войдите в систему.');
+                window.location.href = '/login';
+                return;
+            }
+
+            const allExerciseItems = document.querySelectorAll('.exercise-item[data-answer]');
+            const totalInteractive = allExerciseItems.length;
+            const correctCount = Object.values(exerciseStatus).filter(status => status === true).length;
+
+            const errorMsg = document.getElementById('completion-error');
+
+            if (correctCount < totalInteractive) {
+                errorMsg.textContent = `⚠️ Выполните все упражнения правильно! Сейчас верно: ${correctCount} из ${totalInteractive}`;
+                errorMsg.style.display = 'block';
+                setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/topics/${topicId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    alert('🎉 Поздравляем! Тема успешно завершена.');
+                    window.location.href = '/profile';
+                } else {
+                    const err = await res.json();
+                    errorMsg.textContent = err.detail || 'Ошибка';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (e) {
+                alert('Ошибка сети');
+            }
+        }
+
+        function formatContent(text) {
+            if (!text) return '';
+            return text.trim()
+                         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                         .replace(/\n/g, '<br>')
+                         .replace(/^(\s*<br\s*\/?>)+/gi, '');
+        }
+    </script>
+</body>
+</html>

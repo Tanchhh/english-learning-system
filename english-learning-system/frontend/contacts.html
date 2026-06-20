@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты - English Learning</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .contact-container {
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        .email-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3);
+            transition: transform 0.3s;
+        }
+
+        .email-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .email-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .email-link {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-decoration: underline;
+            text-decoration-color: rgba(255,255,255, 0.4);
+            transition: text-decoration-color 0.2s;
+        }
+
+        .email-link:hover {
+            text-decoration-color: white;
+        }
+
+        .info-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 onclick="window.location.href='/'" style="cursor: pointer; margin: 0;">
+                📚 English Learning
+            </h1>
+
+            <nav style="display: flex; align-items: center; gap: 25px;">
+                <a href="/" id="nav-topics">Темы</a>
+                <a href="/leaderboard" id="nav-leaderboard">🏆 Рейтинг</a>
+                <a href="/contacts" id="nav-contacts" class="active">Контакты</a>
+
+                <span style="width: 1px; height: 20px; background: var(--border-color);"></span>
+
+                <a href="/profile" id="nav-profile">Профиль</a>
+                <a href="/admin" id="nav-admin" style="display:none;">🔧 Админка</a>
+                <button id="logoutBtn" style="display:none;" class="btn btn-outline" onclick="logout()">Выйти</button>
+                <a href="/login" id="nav-login">Войти</a>
+            </nav>
+
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему"
+                    style="margin-left: 20px; font-size: 1.3rem;">🌙</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card contact-container">
+            <div style="text-align: center;">
+                <h2>📧 Связь с разработчиком</h2>
+                <p style="color: var(--text-secondary); margin-top: 10px;">
+                    Если у вас есть вопросы по работе системы, предложения или вы нашли ошибку, пожалуйста, напишите мне.
+                </p>
+            </div>
+
+            <div class="email-box">
+                <span class="email-icon">✉️</span>
+                <div style="margin-bottom: 10px; opacity: 0.8; font-size: 0.9rem;">Напишите на почту:</div>
+                <a href="mailto:ivankireev2006@gmail.com" class="email-link">
+                    ivankireev2006@gmail.com
+                </a>
+            </div>
+
+            <div class="info-section">
+                <h3 style="margin-bottom: 15px;">ℹ️ О проекте</h3>
+                <p style="color: var(--text-secondary); line-height: 1.7;">
+                    Информационная система для изучения английского языка.
+                    Приложение разработано с использованием современных веб-технологий (FastAPI, JS, PostgreSQL).
+                </p>
+                <p style="margin-top: 15px; font-weight: 600; color: var(--text-main);">
+                    ЛГТУ, Кафедра АСУ, 2026 год
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/script.js?v=3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('nav a').forEach(link => link.classList.remove('active'));
+            document.getElementById('nav-contacts')?.classList.add('active');
+
+            checkAuthUI();
+        });
+    </script>
+</body>
+</html>
